@@ -1,6 +1,6 @@
 #include "ig_lio/pointcloud_preprocess.h"
 #include "ig_lio/timer.h"
-
+#include <math.h>
 extern Timer timer;
 
 void PointCloudPreprocess::Process(
@@ -10,7 +10,7 @@ void PointCloudPreprocess::Process(
   double time_offset =
       (msg->header.stamp.toSec() - last_start_time) * 1000.0;  // ms
 
-  for (size_t i = 1; i < msg->point_num; ++i) {
+  for (size_t i = 1; i < msg->point_num && i<25000; ++i) {
     if ((msg->points[i].line < num_scans_) &&
         ((msg->points[i].tag & 0x30) == 0x10 ||
          (msg->points[i].tag & 0x30) == 0x00) &&
@@ -24,6 +24,10 @@ void PointCloudPreprocess::Process(
       point.x = msg->points[i].x;
       point.y = msg->points[i].y;
       point.z = msg->points[i].z;
+      // double dist = std::sqrt((point.x * point.x) +(point.y * point.y) + (point.z * point.z));
+      // dist = std::max(dist, 20.0);
+      // int dist_int = msg->points[i].reflectivity / std::max(dist, 1.0);
+      // point.intensity = dist_int;
       point.intensity = msg->points[i].reflectivity;
       point.curvature = time_offset + msg->points[i].offset_time * 1e-6;  // ms
       cloud_out->push_back(point);

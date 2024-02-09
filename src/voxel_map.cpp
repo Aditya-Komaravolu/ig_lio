@@ -256,6 +256,7 @@ bool VoxelMap::KNNByCondition(const Eigen::Vector3d& point,
   }
 
   if (point_dist.empty()) {
+    // std::cout<< "All points are greater than the range" << range << "\n";
     return false;
   }
 

@@ -65,11 +65,12 @@ bool LIO::MeasurementUpdate(SensorMeasurement& sensor_measurement) {
     } else {
       // The first three iterations perform KNN, then no longer perform, thus
       // accelerating the problem convergence
-      if (iter_num_ < 3) {
+      if (iter_num_ < 5) {
         need_converge_ = false;
       } else {
         need_converge_ = true;
       }
+    // need_converge_ = true;
     }
 
     iter_num_++;
@@ -137,14 +138,17 @@ bool LIO::StepOptimize(const SensorMeasurement& sensor_measurement,
           // After LIO has moved some distance, each voxel is already well
           // formulate
           // the surrounding environments
-          if (keyframe_count_ > 20) {
-            y0_lidar = ConstructGICPConstraints(H, b);
-          }
-          // In the initial state, the probability of each voxel is poor
-          // use point-to-plane instead of GICP
-          else {
+        //   if (keyframe_count_ > 20) {
+        //     y0_lidar = ConstructGICPConstraints(H, b);
+        //   }
+        //   // In the initial state, the probability of each voxel is poor
+        //   // use point-to-plane instead of GICP
+        //   else {
+        //     y0_lidar = ConstructPoint2PlaneConstraints(H, b);
+        //   }
             y0_lidar = ConstructPoint2PlaneConstraints(H, b);
-          }
+            // y0_lidar = ConstructGICPConstraints(H, b);
+
         },
         "lidar constraints");
 
@@ -495,9 +499,11 @@ double LIO::ConstructPoint2PlaneConstraints(Eigen::Matrix<double, 15, 15>& H,
                                       curr_state_.pose.block<3, 1>(0, 3);
 
           std::vector<Eigen::Vector3d> nearest_points;
-          nearest_points.reserve(10);
+          nearest_points.reserve(20);
+          // nearest_points.reserve(10);
 
-          voxel_map_ptr_->KNNByCondition(p_w, 5, 5.0, nearest_points);
+          voxel_map_ptr_->KNNByCondition(p_w, 10, 3.0, nearest_points);
+          // voxel_map_ptr_->KNNByCondition(p_w, 5, 5.0, nearest_points);
 
           Eigen::Vector4d plane_coeff;
           if (nearest_points.size() >= 3 &&

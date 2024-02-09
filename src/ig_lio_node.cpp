@@ -10,7 +10,8 @@
 #include <sensor_msgs/Imu.h>
 #include <tf/transform_broadcaster.h>
 #include <boost/filesystem.hpp>
-
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 
 #include "ig_lio/lio.h"
@@ -33,6 +34,7 @@ double lidar_timestamp = 0.0;
 double imu_timestamp = 0.0;
 bool timediff_correct_flag = false;
 std::mutex buff_mutex;
+bool pcd_save_en=false;
 
 // data deque
 std::deque<std::pair<double, pcl::PointCloud<PointType>::Ptr>> cloud_buff;
@@ -52,6 +54,7 @@ SensorMeasurement sensor_measurement;
 std::shared_ptr<LIO> lio_ptr;
 pcl::VoxelGrid<PointType> voxel_filter;
 std::fstream odom_stream;
+CloudPtr pointcloudworld(new CloudType());
 
 void ImuCallBack(const sensor_msgs::Imu::ConstPtr& msg_ptr) {
   static double last_imu_timestamp = 0.0;
@@ -436,6 +439,10 @@ void Process() {
   CloudPtr trans_cloud(new CloudType());
   pcl::transformPointCloud(
       *sensor_measurement.cloud_ptr_, *trans_cloud, result_pose);
+  
+  if (pcd_save_en){
+      *pointcloudworld += *trans_cloud;
+  }
   sensor_msgs::PointCloud2 scan_msg;
   pcl::toROSMsg(*trans_cloud, scan_msg);
   scan_msg.header.frame_id = "world";
@@ -613,7 +620,7 @@ int main(int argc, char** argv) {
   nh.param<bool>("enable_outlier_rejection", enable_outlier_rejection, false);
   nh.param<bool>("enable_acc_correct", enable_acc_correct, false);
   nh.param<bool>("enable_ahrs_initalization", enable_ahrs_initalization, false);
-
+  nh.param<bool>("save/pcd_save_en", pcd_save_en, false);
   double min_radius, max_radius;
   nh.param<double>("min_radius", min_radius, 1.0);
   nh.param<double>("max_radius", max_radius, 1.0);
@@ -719,6 +726,12 @@ int main(int argc, char** argv) {
     Process();
     rate.sleep();
   }
-
+  if (pointcloudworld->size() > 0 && pcd_save_en) {
+      std::string file_name = std::string("scans.pcd");
+      std::string all_points_dir(std::string(std::string(ROOT_DIR) + "PCD/") + file_name);
+      pcl::PCDWriter pcd_writer;
+      std::cout << "current scan saved to /PCD/" << file_name << "\n";
+      pcd_writer.writeBinary(all_points_dir, *pointcloudworld);
+    }
   timer.PrintAll();
 }

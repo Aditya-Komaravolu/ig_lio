@@ -48,6 +48,7 @@ inline bool EstimatePlane(Eigen::Vector4d& pca_result,
   }
 
   Eigen::Vector3d normvec = A.colPivHouseholderQr().solve(b);
+  // Eigen::Vector3d normvec = A.fullPivHouseholderQr().solve(b);
 
   double n_norm = normvec.norm();
   pca_result(0) = normvec(0) / n_norm;
